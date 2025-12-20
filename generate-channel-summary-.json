@@ -1,0 +1,574 @@
+{
+  "updatedAt": "2025-12-20T00:05:42.114Z",
+  "createdAt": "2025-12-13T14:18:36.335Z",
+  "id": "1Oa1yEYSMnXKfwlC",
+  "name": "Generate channel summary",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b88dee0b-28c2-49c1-b710-7bdee70a3c17",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "guildId": {
+          "__rl": true,
+          "value": "1339075589977669695",
+          "mode": "list",
+          "cachedResultName": "AI BASE",
+          "cachedResultUrl": "https://discord.com/channels/1339075589977669695"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1447309303978659902",
+          "mode": "list",
+          "cachedResultName": "朝活_202601",
+          "cachedResultUrl": "https://discord.com/channels/1339075589977669695/1447309303978659902"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        192,
+        0
+      ],
+      "id": "7bb4b892-3ec0-4b0d-8bf7-27dd3b2ea1c7",
+      "name": "Get many messages",
+      "webhookId": "f6ce8363-2088-4496-a9f4-2a47d0f6bfc3",
+      "credentials": {
+        "discordBotApi": {
+          "id": "pJcKoheH80Fa5sQF",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs/heads/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        192,
+        496
+      ],
+      "id": "70092491-a21a-4811-80f9-9a3d84d95f54",
+      "name": "Get SHA",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ref",
+              "value": "=refs/heads/auto-summary-{{ $now.format('yyyy-MM-dd-HHmmss') }}"
+            },
+            {
+              "name": "sha",
+              "value": "={{ $('Get SHA').item.json.object.sha }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        400,
+        496
+      ],
+      "id": "fe108e59-3117-4cc9-aac7-0ad0c688a978",
+      "name": "Create branch",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Codeノード - OpenAI結果を受け取ってHTML生成\nconst messages = $input.all();\nconst today = new Date();\nconst yearMonth = `${today.getFullYear()}年${today.getMonth() + 1}月`;\n\n// カテゴリごとにグループ化し、さらに投稿者でサブグループ化\nconst grouped = {};\nmessages.forEach(msg => {\n  const data = msg.json;\n  const category = data.category;\n  const username = data.user;\n  \n  if (!grouped[category]) {\n    grouped[category] = {};\n  }\n  if (!grouped[category][username]) {\n    grouped[category][username] = [];\n  }\n  \n  grouped[category][username].push(data);\n});\n\n// カテゴリ名のマッピング（OpenAIの英語カテゴリ → 日本語表示）\nconst categoryNames = {\n  tutorial: 'チュートリアル・学習リソース',\n  article: 'AI技術記事・解説',\n  documentation: '公式ドキュメント・技術仕様',\n  tool: 'ツール・ライブラリ',\n  video: '動画コンテンツ',\n  repository: 'リポジトリ・サンプルコード',\n  openai: 'OpenAI／ChatGPT関連',\n  rag: 'RAG（情報検索×AI）',\n  image_generation: '生成AI画像',\n  agent: 'AIエージェント／自動化',\n  workflow: 'ワークフロー自動化',\n  other: 'その他'\n};\n\n// HTML生成\nlet html = `<!DOCTYPE html>\n<html lang=\"ja\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>AI BASE - ${yearMonth}まとめ</title>\n  <link rel=\"stylesheet\" href=\"../style.css\">\n</head>\n<body>\n    <header>\n        <div class=\"logo-container\">\n            <img src=\"../img/yamanashi-aibase.png\" alt=\"AI BASE Logo\" class=\"logo\">\n        </div>\n        <h1>AI BASE</h1>\n        <p class=\"tagline\"><a href=\"../index.html\">← Back to Home</a></p>\n    </header>\n\n  <main>\n    <article class=\"summary\">\n      <h1>${yearMonth}まとめ</h1>\n`;\n\n// カテゴリごとにセクション生成\nlet categoryIndex = 1;\nObject.entries(grouped).forEach(([category, users]) => {\n  const categoryTitle = categoryNames[category] || category;\n  html += `\\n     <section class=\"category\">\\n     <h2>${categoryIndex}. ${categoryTitle}</h2>\\n`;\n  \n  // 投稿者ごとにサブセクション\n  Object.entries(users).forEach(([username, items]) => {\n    html += `\\n    <div class=\"contributor\">\\n    <h3>投稿者：${username}</h3>\\n    <ul>\\n`;\n    \n    items.forEach(item => {\n      // タイトル抽出（コンテンツの最初の部分またはURL）\n      const headline = item.headline;\n      const url = item.url;\n      \n      html += `      <li><strong>${headline}</strong><br>\\n`;\n      html += `        <a href=\"${url}\" target=\"_blank\">${url}</a>`;\n      \n      \n      html += `</li>\\n`;\n    });\n    \n    html += `    </ul>\\n`;\n  });\n  html += `\\n    </div>\\n    <section>\\n`;\n  categoryIndex++;\n});\n\n// Second look セクション（任意）\nhtml += `\n    </article>\n  </main>\n\n  <footer>\n    <p>© ${today.getFullYear()} AI BASE. All rights reserved.</p>\n  </footer>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    html,\n    filename: `test-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}.html`,\n    categories: Object.keys(grouped),\n    totalMessages: messages.length,\n    generatedAt: today.toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        256
+      ],
+      "id": "160e022b-f95d-4efe-b24d-b8cbf19b529f",
+      "name": "HTML Generation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const originalData = $('Format Discord response').all();\nconst aiResults = $input.all(); // OpenAI結果\nconsole.log(aiResults)\n\nreturn originalData.map((item, index) => {\n  const aiResponse = JSON.parse(aiResults[index].json.output[0].content[0].text);\n  \n  return {\n    json: {\n      ...item.json,\n      category: aiResponse.category,\n      headline: aiResponse.headline,\n      tags: aiResponse.tags\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        256
+      ],
+      "id": "ef99bc52-643f-499d-9a79-dc6a6252343b",
+      "name": "Format AI response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Codeノードでの例\nconst messages = $input.all();\nconsole.log(messages)\n\nconst urlMessages = messages.filter(msg => {\n  return msg.json.content.match(/https?:\\/\\/[^\\s]+/);\n}).map(msg => ({\n  url: msg.json.content.match(/https?:\\/\\/[^\\s]+/)[0],\n  title: msg.json.embeds[0]?.title,\n  description: msg.json.embeds[0]?.description,\n  user: msg.json.author.global_name ? msg.json.author.global_name:msg.json.author.username,\n  content: msg.json.content\n}));\n\nreturn urlMessages;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        0
+      ],
+      "id": "8c49e64c-e518-4f9b-ab30-c7ea056e5bb3",
+      "name": "Format Discord response"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "あなたは技術コンテンツの分類専門家です。\n以下のカテゴリのいずれかに分類してください：\n\n**主要カテゴリ:**\n- openai: OpenAI、ChatGPT、GPT関連\n- rag: RAG、検索拡張生成、ベクトルDB\n- image_generation: 画像生成AI（Stable Diffusion、DALL-E等）\n- agent: AIエージェント、自律AI、自動化システム\n- workflow: n8n、Zapier等のワークフロー自動化\n- tutorial: チュートリアル、ハウツー\n- article: 技術記事、解説ブログ\n- documentation: 公式ドキュメント\n- tool: ツール、ライブラリ\n- video: 動画コンテンツ\n- repository: GitHubリポジトリ\n- other: その他\n\n日本語で簡潔な説明を付けてJSON形式で返してください：\n{\n  \"category\": \"カテゴリ名\",\n  \"headline\": \"内容を一行で説明\",\n  \"tags\": [\"関連タグ1\", \"関連タグ2\"]\n}"
+            },
+            {
+              "content": "=以下のメッセージを分類してください：\n\n投稿者: {{ $json.user }}\n内容: {{ $json.content }}\nURL:  {{ $json.url }}\nタイトル : {{ $json.title }}\n説明 : {{ $json.description }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "8815b584-dfe7-4150-934a-fd916aedcbad",
+      "name": "Categorize",
+      "credentials": {
+        "openAiApi": {
+          "id": "OCUPByWGmta7FuDI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const createBranchResponse = $('Create branch').first().json;\n\nreturn {\n  json: {\n    branchName: createBranchResponse.ref.replace('refs/heads/', ''),\n    fullRef: createBranchResponse.ref,\n    sha: createBranchResponse.object.sha,\n    htmlContent: $('HTML Generation').first().json.html,\n    filename: $('HTML Generation').first().json.filename\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        496
+      ],
+      "id": "182266fd-e32c-42e2-bf4f-ecb4880f96e3",
+      "name": "Extract Branch Info"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst base64Content = Buffer.from(data.htmlContent).toString('base64');\n\nreturn {\n  json: {\n    ...data,\n    base64Content: base64Content,\n    commitMessage: `Add ${data.filename}`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        496
+      ],
+      "id": "113cbf8d-7e18-4a50-a157-f4b5079a2812",
+      "name": "Prepare File Content"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "yamanashi-aibase",
+          "mode": "list",
+          "cachedResultName": "yamanashi-aibase",
+          "cachedResultUrl": "https://github.com/yamanashi-aibase"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "yamanashi-aibase.github.io",
+          "mode": "list",
+          "cachedResultName": "yamanashi-aibase.github.io",
+          "cachedResultUrl": "https://github.com/yamanashi-aibase/yamanashi-aibase.github.io"
+        },
+        "filePath": "index.html",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        784
+      ],
+      "id": "3c724602-b511-4c09-bf88-d396a938b261",
+      "name": "Get index.html",
+      "webhookId": "26d0f9a2-96eb-4c34-9faf-24350db67f06",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const existingFile = $('Get index.html').first().json;\nconst newSummary = $('HTML Generation').first().json;\n\n// Base64デコード\nconst currentContent = Buffer.from(existingFile.content, 'base64').toString('utf-8');\n\n// 新しいリンクを追加\nconst newLink = `\n                <div class=\"summary-card\">\n                  <h3>${$today}</h3>\n                  <p>$today</p>\n                  <a href=\"summaries/${newSummary.filename}\" class=\"btn\">View Summary →</a>\n                </div>\n`;\n\n// <ul id=\"summary-list\"> の後に挿入\nconst updatedContent = currentContent.replace(\n  /(<div class=\"summary-list\">)/,\n  `$1\\n${newLink}`\n);\nconst base64Content = Buffer.from(updatedContent).toString('base64');\nreturn {\n  json: {\n    updatedIndexContent: updatedContent,\n    updatedContentBase64: base64Content,\n    indexSha: existingFile.sha\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        784
+      ],
+      "id": "7c475c8f-3931-4140-87ff-1c351bf3d75d",
+      "name": "Update index.html"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/index.html",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "Update index"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.updatedContentBase64 }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $('Extract Branch Info').item.json.branchName }}"
+            },
+            {
+              "name": "sha",
+              "value": "={{ $('Get index.html').item.json.sha }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        608,
+        784
+      ],
+      "id": "0134c67d-d261-4c57-a681-d87fc6cafb5d",
+      "name": "Commit index.html",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/summaries/{{ $json.filename }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.commitMessage }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.base64Content }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $json.branchName }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        960,
+        496
+      ],
+      "id": "f882f248-b135-4ac8-9bec-16f45cc35645",
+      "name": "Commit new monthly summary",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/pulls",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "=Add Discord summary {{ $now.format('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "head",
+              "value": "={{ $('Extract Branch Info').item.json.branchName }}"
+            },
+            {
+              "name": "base",
+              "value": "main"
+            },
+            {
+              "name": "body",
+              "value": "Auto generated PR from n8n workflow"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        816,
+        784
+      ],
+      "id": "ac943fb6-ef33-4f89-a960-240790535d34",
+      "name": "Create a PR",
+      "credentials": {
+        "githubApi": {
+          "id": "IZNyfyYxCqQX5iU9",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Format Discord response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get SHA": {
+      "main": [
+        [
+          {
+            "node": "Create branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create branch": {
+      "main": [
+        [
+          {
+            "node": "Extract Branch Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Generation": {
+      "main": [
+        [
+          {
+            "node": "Get SHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI response": {
+      "main": [
+        [
+          {
+            "node": "HTML Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Discord response": {
+      "main": [
+        [
+          {
+            "node": "Categorize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Categorize": {
+      "main": [
+        [
+          {
+            "node": "Format AI response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Branch Info": {
+      "main": [
+        [
+          {
+            "node": "Prepare File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare File Content": {
+      "main": [
+        [
+          {
+            "node": "Commit new monthly summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get index.html": {
+      "main": [
+        [
+          {
+            "node": "Update index.html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update index.html": {
+      "main": [
+        [
+          {
+            "node": "Commit index.html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit new monthly summary": {
+      "main": [
+        [
+          {
+            "node": "Get index.html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit index.html": {
+      "main": [
+        [
+          {
+            "node": "Create a PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "4583e4a9-96b4-4a1d-942b-0894846b1127",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-13T14:18:36.358Z",
+      "createdAt": "2025-12-13T14:18:36.358Z",
+      "role": "workflow:owner",
+      "workflowId": "1Oa1yEYSMnXKfwlC",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
