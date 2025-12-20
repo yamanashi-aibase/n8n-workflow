@@ -1,0 +1,226 @@
+{
+  "updatedAt": "2025-12-15T15:07:12.422Z",
+  "createdAt": "2025-12-15T15:07:11.155Z",
+  "id": "KMfQvUVNOmytwWES",
+  "name": "JS Code Node",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        0
+      ],
+      "id": "0a176bff-2052-49a9-b46e-9844b216ef92",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add new field\n$input.item.json.age = 10 + Math.floor(Math.random() * 30);\n// Mutate existing field\n$input.item.json.password = $input.item.json.password.split('').map(() => '*').join(\"\")\n// Remove field\ndelete $input.item.json.lastname\n// New object field\nconst emailParts = $input.item.json.email.split(\"@\")\n$input.item.json.emailData = {\n  user: emailParts[0],\n  domain: emailParts[1]\n}\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "65b9646c-16ed-48e5-888f-bd23616899b5",
+      "name": "OnceForEachItemJSCode"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "code-node-benchmark",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ee86940e-57d6-44d7-9a8a-55e022df54da",
+      "name": "Webhook",
+      "webhookId": "34ca1895-ccf4-4a4a-8bb8-a042f5edb567"
+    },
+    {
+      "parameters": {
+        "jsCode": "const digits = '0123456789';\nconst uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';\nconst lowercaseLetters = uppercaseLetters.toLowerCase();\nconst alphabet = [digits, uppercaseLetters, lowercaseLetters].join('').split('')\n\nconst randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;\nconst randomItem = (arr) => arr.at(randomInt(0, arr.length - 1))\nconst randomString = (len) => Array.from({ length: len }).map(() => randomItem(alphabet)).join('')\n\nconst randomUid = () => [8,4,4,4,8].map(len => randomString(len)).join(\"-\")\nconst randomEmail = () => `${randomString(8)}@${randomString(10)}.com`\n\nconst randomPerson = () => ({\n  uid: randomUid(),\n  email: randomEmail(),\n  firstname: randomString(5),\n  lastname: randomString(12),\n  password: randomString(10)\n})\n\nreturn Array.from({ length: 100 }).map(() => ({\n  json: randomPerson()\n}))"
+      },
+      "id": "a4b3c53f-bc85-4c3c-8260-e16db8ccc30b",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "OnceForEachItemJSCode": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "OnceForEachItemJSCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "3240c232-8142-4e53-a7df-ee5bb54ba1fb",
+  "activeVersionId": "3240c232-8142-4e53-a7df-ee5bb54ba1fb",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-12-15T15:07:11.176Z",
+      "createdAt": "2025-12-15T15:07:11.176Z",
+      "role": "workflow:owner",
+      "workflowId": "KMfQvUVNOmytwWES",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2025-12-15T15:07:11.187Z",
+    "createdAt": "2025-12-15T15:07:11.187Z",
+    "versionId": "3240c232-8142-4e53-a7df-ee5bb54ba1fb",
+    "workflowId": "KMfQvUVNOmytwWES",
+    "nodes": [
+      {
+        "parameters": {
+          "respondWith": "allIncomingItems",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          704,
+          0
+        ],
+        "id": "0a176bff-2052-49a9-b46e-9844b216ef92",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Add new field\n$input.item.json.age = 10 + Math.floor(Math.random() * 30);\n// Mutate existing field\n$input.item.json.password = $input.item.json.password.split('').map(() => '*').join(\"\")\n// Remove field\ndelete $input.item.json.lastname\n// New object field\nconst emailParts = $input.item.json.email.split(\"@\")\n$input.item.json.emailData = {\n  user: emailParts[0],\n  domain: emailParts[1]\n}\n\nreturn $input.item;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          464,
+          0
+        ],
+        "id": "65b9646c-16ed-48e5-888f-bd23616899b5",
+        "name": "OnceForEachItemJSCode"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "code-node-benchmark",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "id": "ee86940e-57d6-44d7-9a8a-55e022df54da",
+        "name": "Webhook",
+        "webhookId": "34ca1895-ccf4-4a4a-8bb8-a042f5edb567"
+      },
+      {
+        "parameters": {
+          "jsCode": "const digits = '0123456789';\nconst uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';\nconst lowercaseLetters = uppercaseLetters.toLowerCase();\nconst alphabet = [digits, uppercaseLetters, lowercaseLetters].join('').split('')\n\nconst randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;\nconst randomItem = (arr) => arr.at(randomInt(0, arr.length - 1))\nconst randomString = (len) => Array.from({ length: len }).map(() => randomItem(alphabet)).join('')\n\nconst randomUid = () => [8,4,4,4,8].map(len => randomString(len)).join(\"-\")\nconst randomEmail = () => `${randomString(8)}@${randomString(10)}.com`\n\nconst randomPerson = () => ({\n  uid: randomUid(),\n  email: randomEmail(),\n  firstname: randomString(5),\n  lastname: randomString(12),\n  password: randomString(10)\n})\n\nreturn Array.from({ length: 100 }).map(() => ({\n  json: randomPerson()\n}))"
+        },
+        "id": "a4b3c53f-bc85-4c3c-8260-e16db8ccc30b",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ]
+      }
+    ],
+    "connections": {
+      "OnceForEachItemJSCode": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "OnceForEachItemJSCode",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Tatsuro Handa",
+    "name": null,
+    "description": null
+  },
+  "tags": []
+}
