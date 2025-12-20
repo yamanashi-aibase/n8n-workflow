@@ -1,0 +1,76 @@
+{
+  "updatedAt": "2025-12-15T15:12:40.470Z",
+  "createdAt": "2024-08-06T12:19:51.268Z",
+  "id": "82Nc0iE4YTxpMLtc",
+  "name": "[BENCHMARK] Single Webhook",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "single-webhook",
+        "options": {}
+      },
+      "id": "7587ab0e-cc15-424f-83c0-c887a0eb97fb",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        760,
+        400
+      ],
+      "webhookId": "fa563fc2-c73f-4631-99a1-39c16f1f858f"
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "responseMode": "lastNode",
+    "options": {}
+  },
+  "pinData": {},
+  "versionId": "a544b412-66c9-4d2d-8168-48abe1ae298e",
+  "activeVersionId": "a544b412-66c9-4d2d-8168-48abe1ae298e",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-12-15T15:12:40.444Z",
+      "createdAt": "2025-12-15T15:12:40.444Z",
+      "role": "workflow:owner",
+      "workflowId": "82Nc0iE4YTxpMLtc",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2025-12-15T15:12:40.451Z",
+    "createdAt": "2025-12-15T15:12:40.451Z",
+    "versionId": "a544b412-66c9-4d2d-8168-48abe1ae298e",
+    "workflowId": "82Nc0iE4YTxpMLtc",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "single-webhook",
+          "options": {}
+        },
+        "id": "7587ab0e-cc15-424f-83c0-c887a0eb97fb",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          760,
+          400
+        ],
+        "webhookId": "fa563fc2-c73f-4631-99a1-39c16f1f858f"
+      }
+    ],
+    "connections": {},
+    "authors": "Tatsuro Handa",
+    "name": null,
+    "description": null
+  },
+  "tags": []
+}
