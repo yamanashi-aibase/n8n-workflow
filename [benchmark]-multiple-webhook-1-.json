@@ -1,0 +1,50 @@
+{
+  "updatedAt": "2025-12-18T14:10:55.000Z",
+  "createdAt": "2024-08-06T12:19:51.268Z",
+  "id": "F22LzwPXBd75hRLi",
+  "name": "[BENCHMARK] Multiple Webhook 1",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "multiple-webhook1",
+        "options": {}
+      },
+      "id": "b239bc6c-ea40-438d-bb14-5bce03599685",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        760,
+        400
+      ],
+      "webhookId": "14226baf-ea56-43d7-bc0d-eea841746441"
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "responseMode": "lastNode",
+    "options": {}
+  },
+  "pinData": {},
+  "versionId": "b7f34b05-2aa3-42b3-bcac-b2a68a4ad8d5",
+  "activeVersionId": null,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-12-15T14:50:50.214Z",
+      "createdAt": "2025-12-15T14:50:50.214Z",
+      "role": "workflow:owner",
+      "workflowId": "F22LzwPXBd75hRLi",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
