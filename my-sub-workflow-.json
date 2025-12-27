@@ -1,0 +1,79 @@
+{
+  "updatedAt": "2025-12-20T00:07:31.000Z",
+  "createdAt": "2025-12-20T00:06:39.163Z",
+  "id": "wp3jXeArB39QwxrF",
+  "name": "My Sub-workflow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const originalData = $('Start').first().json.Format_Discord_response_allItems;\nconst aiResults = $input.all(); // OpenAI結果\nconsole.log(aiResults)\n\nreturn originalData.map((item, index) => {\n  const aiResponse = JSON.parse(aiResults[index].json.output[0].content[0].text);\n  \n  return {\n    json: {\n      ...item.json,\n      category: aiResponse.category,\n      headline: aiResponse.headline,\n      tags: aiResponse.tags\n    }\n  };\n});",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "d00aacf4-ea5f-491b-a379-642a9f3035f0",
+      "name": "Format AI response"
+    },
+    {
+      "id": "80d6c828-8fcd-4e59-a396-0b0bc7ad85b8",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        816,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Format_Discord_response_allItems",
+              "type": "any"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Format AI response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "2b1ce3e2-a35b-4ae1-a62b-2b21be775dc4",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-20T00:06:39.175Z",
+      "createdAt": "2025-12-20T00:06:39.175Z",
+      "role": "workflow:owner",
+      "workflowId": "wp3jXeArB39QwxrF",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
