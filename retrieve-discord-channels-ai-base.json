@@ -1,0 +1,293 @@
+{
+  "updatedAt": "2025-12-20T01:45:58.603Z",
+  "createdAt": "2025-12-14T13:24:50.508Z",
+  "id": "hSdx2GTjqKiymCut",
+  "name": "Retrieve Discord channels",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "guildId": {
+          "__rl": true,
+          "value": "1339075589977669695",
+          "mode": "list",
+          "cachedResultName": "AI BASE",
+          "cachedResultUrl": "https://discord.com/channels/1339075589977669695"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "904f07bf-c65b-4d2c-b1ee-8478de342a36",
+      "name": "Get many channels",
+      "webhookId": "5cff6216-172e-4bff-9881-43022a8e449d",
+      "credentials": {
+        "discordBotApi": {
+          "id": "pJcKoheH80Fa5sQF",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const channels = $input.all();\nconst formattedChannels = channels.filter(item => \n  item.json.parent_id == \"1435237360680960071\"\n).map(item => ({\n  option: item.json.name + \"::\" + item.json.id,\n}));\n\n\nreturn wf = {\n  \"name\": \"[Managed] Generate channel summary\",\n  \"nodes\": [\n    {\n      \"parameters\": {},\n      \"type\": \"n8n-nodes-base.manualTrigger\",\n      \"typeVersion\": 1,\n      \"position\": [\n        416,\n        -304\n      ],\n      \"id\": \"667ea59a-d02c-4e16-8747-9d9831a227c8\",\n      \"name\": \"When clicking ‘Execute workflow’\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"message\",\n        \"operation\": \"getAll\",\n        \"guildId\": {\n          \"__rl\": true,\n          \"value\": \"1339075589977669695\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"AI BASE\",\n          \"cachedResultUrl\": \"https://discord.com/channels/1339075589977669695\"\n        },\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $json.items.channelId[0] }}\",\n          \"mode\": \"id\"\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.discord\",\n      \"typeVersion\": 2,\n      \"position\": [\n        400,\n        0\n      ],\n      \"id\": \"3f339e73-1206-4d57-9c7b-c6da027fdc9d\",\n      \"name\": \"Get many messages\",\n      \"webhookId\": \"12e72344-03e8-4943-9400-85f71e82260d\",\n      \"credentials\": {\n        \"discordBotApi\": {\n          \"id\": \"pJcKoheH80Fa5sQF\",\n          \"name\": \"Discord Bot account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs/heads/main\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        400,\n        496\n      ],\n      \"id\": \"0ed42dfd-2da2-49b1-ae0a-8841400017a5\",\n      \"name\": \"Get SHA\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"ref\",\n              \"value\": \"=refs/heads/auto-summary-{{ $now.format('yyyy-MM-dd-HHmmss') }}\"\n            },\n            {\n              \"name\": \"sha\",\n              \"value\": \"={{ $('Get SHA').item.json.object.sha }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        608,\n        496\n      ],\n      \"id\": \"8ad81ac0-d844-4d3e-ae76-f7c33a240c49\",\n      \"name\": \"Create branch\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// n8n Codeノード - OpenAI結果を受け取ってHTML生成\\nconst messages = $input.all();\\nconst today = new Date();\\nconst yearMonth = `${today.getFullYear()}年${today.getMonth() + 1}月`;\\n\\n// カテゴリごとにグループ化し、さらに投稿者でサブグループ化\\nconst grouped = {};\\nmessages.forEach(msg => {\\n  const data = msg.json;\\n  const category = data.category;\\n  const username = data.user;\\n  \\n  if (!grouped[category]) {\\n    grouped[category] = {};\\n  }\\n  if (!grouped[category][username]) {\\n    grouped[category][username] = [];\\n  }\\n  \\n  grouped[category][username].push(data);\\n});\\n\\n// カテゴリ名のマッピング（OpenAIの英語カテゴリ → 日本語表示）\\nconst categoryNames = {\\n  tutorial: 'チュートリアル・学習リソース',\\n  article: 'AI技術記事・解説',\\n  documentation: '公式ドキュメント・技術仕様',\\n  tool: 'ツール・ライブラリ',\\n  video: '動画コンテンツ',\\n  repository: 'リポジトリ・サンプルコード',\\n  openai: 'OpenAI／ChatGPT関連',\\n  rag: 'RAG（情報検索×AI）',\\n  image_generation: '生成AI画像',\\n  agent: 'AIエージェント／自動化',\\n  workflow: 'ワークフロー自動化',\\n  other: 'その他'\\n};\\n\\n// HTML生成\\nlet html = `<!DOCTYPE html>\\n<html lang=\\\"ja\\\">\\n<head>\\n  <meta charset=\\\"UTF-8\\\">\\n  <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\">\\n  <title>AI BASE - ${yearMonth}まとめ</title>\\n  <link rel=\\\"stylesheet\\\" href=\\\"../style.css\\\">\\n</head>\\n<body>\\n    <header>\\n        <div class=\\\"logo-container\\\">\\n            <img src=\\\"../img/yamanashi-aibase.png\\\" alt=\\\"AI BASE Logo\\\" class=\\\"logo\\\">\\n        </div>\\n        <h1>AI BASE</h1>\\n        <p class=\\\"tagline\\\"><a href=\\\"../index.html\\\">← Back to Home</a></p>\\n    </header>\\n\\n  <main>\\n    <article class=\\\"summary\\\">\\n      <h1>${yearMonth}まとめ - #${$('Format selected channel id').first().json.items.channelName[0]}</h1>\\n`;\\n\\n// カテゴリごとにセクション生成\\nlet categoryIndex = 1;\\nObject.entries(grouped).forEach(([category, users]) => {\\n  const categoryTitle = categoryNames[category] || category;\\n  html += `\\\\n     <section class=\\\"category\\\">\\\\n     <h2>${categoryIndex}. ${categoryTitle}</h2>\\\\n`;\\n  \\n  // 投稿者ごとにサブセクション\\n  Object.entries(users).forEach(([username, items]) => {\\n    html += `\\\\n    <div class=\\\"contributor\\\">\\\\n    <h3>投稿者：${username}</h3>\\\\n    <ul>\\\\n`;\\n    \\n    items.forEach(item => {\\n      // タイトル抽出（コンテンツの最初の部分またはURL）\\n      const headline = item.headline;\\n      const url = item.url;\\n      \\n      html += `      <li><strong>${headline}</strong><br>\\\\n`;\\n      html += `        <a href=\\\"${url}\\\" target=\\\"_blank\\\">${url}</a>`;\\n      \\n      \\n      html += `</li>\\\\n`;\\n    });\\n    \\n    html += `    </ul>\\\\n`;\\n  });\\n  html += `\\\\n    </div>\\\\n    <section>\\\\n`;\\n  categoryIndex++;\\n});\\n\\n// Second look セクション（任意）\\nhtml += `\\n    </article>\\n  </main>\\n\\n  <footer>\\n    <p>© ${today.getFullYear()} AI BASE. All rights reserved.</p>\\n  </footer>\\n</body>\\n</html>`;\\n\\nconst filename = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDay() + 1).padStart(2, '0')}` + \\n  `_${String(today.getHours() + 1).padStart(2, '0')}${String(today.getMinutes() + 1).padStart(2, '0')}.html`\\n\\nreturn [{\\n  json: {\\n    html,\\n    filename,\\n    categories: Object.keys(grouped),\\n    totalMessages: messages.length,\\n    generatedAt: today.toISOString()\\n  }\\n}];\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        624,\n        256\n      ],\n      \"id\": \"c99433ed-3257-4357-9b16-975c0de46ff6\",\n      \"name\": \"HTML Generation\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const originalData = $('Format Discord response').all();\\nconst aiResults = $input.all(); // OpenAI結果\\nconsole.log(aiResults)\\n\\nreturn originalData.map((item, index) => {\\n  const aiResponse = JSON.parse(aiResults[index].json.output[0].content[0].text);\\n  \\n  return {\\n    json: {\\n      ...item.json,\\n      category: aiResponse.category,\\n      headline: aiResponse.headline,\\n      tags: aiResponse.tags\\n    }\\n  };\\n});\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        400,\n        256\n      ],\n      \"id\": \"3dfb8490-2246-41d5-8542-dcec4be2f6eb\",\n      \"name\": \"Format AI response\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// Codeノードでの例\\nconst messages = $input.all();\\nconsole.log(messages)\\n\\nconst urlMessages = messages.filter(msg => {\\n  return msg.json.content.match(/https?:\\\\/\\\\/[^\\\\s]+/);\\n}).map(msg => ({\\n  url: msg.json.content.match(/https?:\\\\/\\\\/[^\\\\s]+/)[0],\\n  title: msg.json.embeds[0]?.title,\\n  description: msg.json.embeds[0]?.description,\\n  user: msg.json.author.global_name ? msg.json.author.global_name:msg.json.author.username,\\n  content: msg.json.content\\n}));\\n\\nreturn urlMessages;\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        592,\n        0\n      ],\n      \"id\": \"433e6b85-4d2c-4d77-929e-ebb93e824b47\",\n      \"name\": \"Format Discord response\"\n    },\n    {\n      \"parameters\": {\n        \"modelId\": {\n          \"__rl\": true,\n          \"value\": \"gpt-4\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"GPT-4\"\n        },\n        \"responses\": {\n          \"values\": [\n            {\n              \"role\": \"system\",\n              \"content\": \"あなたは技術コンテンツの分類専門家です。\\n以下のカテゴリのいずれかに分類してください：\\n\\n**主要カテゴリ:**\\n- openai: OpenAI、ChatGPT、GPT関連\\n- rag: RAG、検索拡張生成、ベクトルDB\\n- image_generation: 画像生成AI（Stable Diffusion、DALL-E等）\\n- agent: AIエージェント、自律AI、自動化システム\\n- workflow: n8n、Zapier等のワークフロー自動化\\n- tutorial: チュートリアル、ハウツー\\n- article: 技術記事、解説ブログ\\n- documentation: 公式ドキュメント\\n- tool: ツール、ライブラリ\\n- video: 動画コンテンツ\\n- repository: GitHubリポジトリ\\n- other: その他\\n\\n日本語で簡潔な説明を付けてJSON形式で返してください：\\n{\\n  \\\"category\\\": \\\"カテゴリ名\\\",\\n  \\\"headline\\\": \\\"内容を一行で説明\\\",\\n  \\\"tags\\\": [\\\"関連タグ1\\\", \\\"関連タグ2\\\"]\\n}\"\n            },\n            {\n              \"content\": \"=以下のメッセージを分類してください：\\n\\n投稿者: {{ $json.user }}\\n内容: {{ $json.content }}\\nURL:  {{ $json.url }}\\nタイトル : {{ $json.title }}\\n説明 : {{ $json.description }}\"\n            }\n          ]\n        },\n        \"builtInTools\": {},\n        \"options\": {}\n      },\n      \"type\": \"@n8n/n8n-nodes-langchain.openAi\",\n      \"typeVersion\": 2.1,\n      \"position\": [\n        832,\n        0\n      ],\n      \"id\": \"36815095-8cc5-4126-98c7-e4e060451f59\",\n      \"name\": \"Categorize\",\n      \"credentials\": {\n        \"openAiApi\": {\n          \"id\": \"OCUPByWGmta7FuDI\",\n          \"name\": \"OpenAi account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const createBranchResponse = $('Create branch').first().json;\\n\\nreturn {\\n  json: {\\n    branchName: createBranchResponse.ref.replace('refs/heads/', ''),\\n    fullRef: createBranchResponse.ref,\\n    sha: createBranchResponse.object.sha,\\n    htmlContent: $('HTML Generation').first().json.html,\\n    filename: $('HTML Generation').first().json.filename\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        800,\n        496\n      ],\n      \"id\": \"e73d7a86-7263-48c3-8ff2-7dd0d5788d77\",\n      \"name\": \"Extract Branch Info\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const data = $input.first().json;\\nconst base64Content = Buffer.from(data.htmlContent).toString('base64');\\n\\nreturn {\\n  json: {\\n    ...data,\\n    base64Content: base64Content,\\n    commitMessage: `Add ${data.filename}`\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        1008,\n        496\n      ],\n      \"id\": \"13fdad3b-3cd7-40b6-8de1-2fa12ed39ba8\",\n      \"name\": \"Prepare File Content\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"file\",\n        \"operation\": \"get\",\n        \"owner\": {\n          \"__rl\": true,\n          \"value\": \"yamanashi-aibase\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"yamanashi-aibase\",\n          \"cachedResultUrl\": \"https://github.com/yamanashi-aibase\"\n        },\n        \"repository\": {\n          \"__rl\": true,\n          \"value\": \"yamanashi-aibase.github.io\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"yamanashi-aibase.github.io\",\n          \"cachedResultUrl\": \"https://github.com/yamanashi-aibase/yamanashi-aibase.github.io\"\n        },\n        \"filePath\": \"index.html\",\n        \"asBinaryProperty\": false,\n        \"additionalParameters\": {}\n      },\n      \"type\": \"n8n-nodes-base.github\",\n      \"typeVersion\": 1.1,\n      \"position\": [\n        400,\n        784\n      ],\n      \"id\": \"9306a877-3a8b-4df7-a0e6-8ba3fd913185\",\n      \"name\": \"Get index.html\",\n      \"webhookId\": \"4e4d1b17-e2ef-4da7-a764-7de5c72353c8\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const existingFile = $('Get index.html').first().json;\\nconst newSummary = $('HTML Generation').first().json;\\n\\n// Base64デコード\\nconst currentContent = Buffer.from(existingFile.content, 'base64').toString('utf-8');\\n\\n// 新しいリンクを追加\\nconst newLink = `\\n                <div class=\\\"summary-card\\\">\\n                  <h3>${$today.year}年${$today.month}月</h3>\\n                  <a href=\\\"summaries/${newSummary.filename}\\\" class=\\\"btn\\\">View Summary →</a>\\n                </div>\\n`;\\n\\n// <ul id=\\\"summary-list\\\"> の後に挿入\\nconst updatedContent = currentContent.replace(\\n  /(<div class=\\\"summary-list\\\">)/,\\n  `$1\\\\n${newLink}`\\n);\\nconst base64Content = Buffer.from(updatedContent).toString('base64');\\nreturn {\\n  json: {\\n    updatedIndexContent: updatedContent,\\n    updatedContentBase64: base64Content,\\n    indexSha: existingFile.sha\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        608,\n        784\n      ],\n      \"id\": \"7d589de9-b53f-4be9-9d5c-c77b88ccc9d5\",\n      \"name\": \"Update index.html\"\n    },\n    {\n      \"parameters\": {\n        \"method\": \"PUT\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/index.html\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"message\",\n              \"value\": \"Update index\"\n            },\n            {\n              \"name\": \"content\",\n              \"value\": \"={{ $json.updatedContentBase64 }}\"\n            },\n            {\n              \"name\": \"branch\",\n              \"value\": \"={{ $('Extract Branch Info').item.json.branchName }}\"\n            },\n            {\n              \"name\": \"sha\",\n              \"value\": \"={{ $('Get index.html').item.json.sha }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        816,\n        784\n      ],\n      \"id\": \"ae6afa94-e806-4894-a011-1e0f32987885\",\n      \"name\": \"Commit index.html\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"PUT\",\n        \"url\": \"=https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/summaries/{{ $json.filename }}\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"message\",\n              \"value\": \"={{ $json.commitMessage }}\"\n            },\n            {\n              \"name\": \"content\",\n              \"value\": \"={{ $json.base64Content }}\"\n            },\n            {\n              \"name\": \"branch\",\n              \"value\": \"={{ $json.branchName }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        1168,\n        496\n      ],\n      \"id\": \"3db6e1b6-ca41-4437-86ea-dbf820bcbce1\",\n      \"name\": \"Commit new monthly summary\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/pulls\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"title\",\n              \"value\": \"=Add Discord summary {{ $now.format('yyyy-MM-dd') }}\"\n            },\n            {\n              \"name\": \"head\",\n              \"value\": \"={{ $('Extract Branch Info').item.json.branchName }}\"\n            },\n            {\n              \"name\": \"base\",\n              \"value\": \"main\"\n            },\n            {\n              \"name\": \"body\",\n              \"value\": \"Auto generated PR from n8n workflow\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        1024,\n        784\n      ],\n      \"id\": \"27325efb-9e61-4e52-af31-2f7913e49cab\",\n      \"name\": \"Create a PR\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"resume\": \"form\",\n        \"formTitle\": \"Select channel\",\n        \"formDescription\": \"Select channel name to generate summary\",\n        \"formFields\": {\n          \"values\": [\n            {\n              \"fieldLabel\": \"Channel name\",\n              \"fieldType\": \"dropdown\",\n              \"fieldOptions\": {\n                \"values\": formattedChannels\n              }\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.wait\",\n      \"typeVersion\": 1.1,\n      \"position\": [\n        624,\n        -304\n      ],\n      \"id\": \"667179ee-eaa3-4768-bbab-26754c888190\",\n      \"name\": \"Wait\",\n      \"webhookId\": \"bdb25df1-7a13-4e55-850a-6aaf9120ae4c\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"return {\\n  items: {\\n    \\\"channelName\\\":[$input.first().json['Channel name'].split(\\\"::\\\")[0]],\\n    \\\"channelId\\\":[$input.first().json['Channel name'].split(\\\"::\\\")[1]]\\n  }\\n}\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        832,\n        -304\n      ],\n      \"id\": \"65f62f1e-e759-43eb-be36-5fde14e87887\",\n      \"name\": \"Format selected channel id\"\n    }\n  ],\n  \"pinData\": {},\n  \"connections\": {\n    \"When clicking ‘Execute workflow’\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Wait\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get many messages\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format Discord response\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get SHA\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Create branch\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Create branch\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Extract Branch Info\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"HTML Generation\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get SHA\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format AI response\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"HTML Generation\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format Discord response\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Categorize\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Categorize\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format AI response\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Extract Branch Info\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Prepare File Content\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Prepare File Content\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Commit new monthly summary\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Update index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Update index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Commit index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Commit new monthly summary\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Commit index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Create a PR\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Wait\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format selected channel id\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format selected channel id\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get many messages\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"active\": false,\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  },\n  \"versionId\": \"33dfd575-6727-455a-9aef-fb10b6e062ba\",\n  \"meta\": {\n    \"templateCredsSetupCompleted\": true,\n    \"instanceId\": \"81f9ef99c4d24b407d47bcb03b24a88a4b635d6b9d3ea58fe12017e3def7db2d\"\n  },\n  \"id\": \"Dbr7SgjbYhGTpdem\",\n  \"tags\": [\n    {\n      \"updatedAt\": \"2025-12-20T00:06:13.106Z\",\n      \"createdAt\": \"2025-12-20T00:06:13.106Z\",\n      \"id\": \"MUspEjhgllRXe8UT\",\n      \"name\": \"ai-base\"\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "ecdfa8bd-86d6-40a1-9778-593615272b1b",
+      "name": "Generate channel list"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ee044ba1-356a-4a3d-a2b4-d9e99d0991e6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "workflowId": {
+          "__rl": true,
+          "value": "mgGlasf6CjEmgyEQ",
+          "mode": "list",
+          "cachedResultName": "Test workflow (#mgGlasf6CjEmgyEQ)"
+        },
+        "workflowObject": "={{ $json.toJsonString() }}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        592,
+        0
+      ],
+      "id": "5b1f4ae4-d061-4b5d-97bf-b3762f1b2afd",
+      "name": "Update a workflow",
+      "credentials": {
+        "n8nApi": {
+          "id": "udcRGPpMJMsYJlDA",
+          "name": "n8n account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Get many channels": {
+      "main": [
+        [
+          {
+            "node": "Generate channel list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate channel list": {
+      "main": [
+        [
+          {
+            "node": "Update a workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many channels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9e678f25-6976-4a82-94a0-a06f6a08fe73",
+  "activeVersionId": "9e678f25-6976-4a82-94a0-a06f6a08fe73",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-12-14T13:24:50.527Z",
+      "createdAt": "2025-12-14T13:24:50.527Z",
+      "role": "workflow:owner",
+      "workflowId": "hSdx2GTjqKiymCut",
+      "projectId": "hJ0KrraqwPtCFK0F"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2025-12-20T01:45:58.612Z",
+    "createdAt": "2025-12-20T01:45:58.612Z",
+    "versionId": "9e678f25-6976-4a82-94a0-a06f6a08fe73",
+    "workflowId": "hSdx2GTjqKiymCut",
+    "nodes": [
+      {
+        "parameters": {
+          "operation": "getAll",
+          "guildId": {
+            "__rl": true,
+            "value": "1339075589977669695",
+            "mode": "list",
+            "cachedResultName": "AI BASE",
+            "cachedResultUrl": "https://discord.com/channels/1339075589977669695"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.discord",
+        "typeVersion": 2,
+        "position": [
+          208,
+          0
+        ],
+        "id": "904f07bf-c65b-4d2c-b1ee-8478de342a36",
+        "name": "Get many channels",
+        "webhookId": "5cff6216-172e-4bff-9881-43022a8e449d",
+        "credentials": {
+          "discordBotApi": {
+            "id": "pJcKoheH80Fa5sQF",
+            "name": "Discord Bot account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const channels = $input.all();\nconst formattedChannels = channels.filter(item => \n  item.json.parent_id == \"1435237360680960071\"\n).map(item => ({\n  option: item.json.name + \"::\" + item.json.id,\n}));\n\n\nreturn wf = {\n  \"name\": \"[Managed] Generate channel summary\",\n  \"nodes\": [\n    {\n      \"parameters\": {},\n      \"type\": \"n8n-nodes-base.manualTrigger\",\n      \"typeVersion\": 1,\n      \"position\": [\n        416,\n        -304\n      ],\n      \"id\": \"667ea59a-d02c-4e16-8747-9d9831a227c8\",\n      \"name\": \"When clicking ‘Execute workflow’\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"message\",\n        \"operation\": \"getAll\",\n        \"guildId\": {\n          \"__rl\": true,\n          \"value\": \"1339075589977669695\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"AI BASE\",\n          \"cachedResultUrl\": \"https://discord.com/channels/1339075589977669695\"\n        },\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $json.items.channelId[0] }}\",\n          \"mode\": \"id\"\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.discord\",\n      \"typeVersion\": 2,\n      \"position\": [\n        400,\n        0\n      ],\n      \"id\": \"3f339e73-1206-4d57-9c7b-c6da027fdc9d\",\n      \"name\": \"Get many messages\",\n      \"webhookId\": \"12e72344-03e8-4943-9400-85f71e82260d\",\n      \"credentials\": {\n        \"discordBotApi\": {\n          \"id\": \"pJcKoheH80Fa5sQF\",\n          \"name\": \"Discord Bot account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs/heads/main\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        400,\n        496\n      ],\n      \"id\": \"0ed42dfd-2da2-49b1-ae0a-8841400017a5\",\n      \"name\": \"Get SHA\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/git/refs\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"ref\",\n              \"value\": \"=refs/heads/auto-summary-{{ $now.format('yyyy-MM-dd-HHmmss') }}\"\n            },\n            {\n              \"name\": \"sha\",\n              \"value\": \"={{ $('Get SHA').item.json.object.sha }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        608,\n        496\n      ],\n      \"id\": \"8ad81ac0-d844-4d3e-ae76-f7c33a240c49\",\n      \"name\": \"Create branch\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// n8n Codeノード - OpenAI結果を受け取ってHTML生成\\nconst messages = $input.all();\\nconst today = new Date();\\nconst yearMonth = `${today.getFullYear()}年${today.getMonth() + 1}月`;\\n\\n// カテゴリごとにグループ化し、さらに投稿者でサブグループ化\\nconst grouped = {};\\nmessages.forEach(msg => {\\n  const data = msg.json;\\n  const category = data.category;\\n  const username = data.user;\\n  \\n  if (!grouped[category]) {\\n    grouped[category] = {};\\n  }\\n  if (!grouped[category][username]) {\\n    grouped[category][username] = [];\\n  }\\n  \\n  grouped[category][username].push(data);\\n});\\n\\n// カテゴリ名のマッピング（OpenAIの英語カテゴリ → 日本語表示）\\nconst categoryNames = {\\n  tutorial: 'チュートリアル・学習リソース',\\n  article: 'AI技術記事・解説',\\n  documentation: '公式ドキュメント・技術仕様',\\n  tool: 'ツール・ライブラリ',\\n  video: '動画コンテンツ',\\n  repository: 'リポジトリ・サンプルコード',\\n  openai: 'OpenAI／ChatGPT関連',\\n  rag: 'RAG（情報検索×AI）',\\n  image_generation: '生成AI画像',\\n  agent: 'AIエージェント／自動化',\\n  workflow: 'ワークフロー自動化',\\n  other: 'その他'\\n};\\n\\n// HTML生成\\nlet html = `<!DOCTYPE html>\\n<html lang=\\\"ja\\\">\\n<head>\\n  <meta charset=\\\"UTF-8\\\">\\n  <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\">\\n  <title>AI BASE - ${yearMonth}まとめ</title>\\n  <link rel=\\\"stylesheet\\\" href=\\\"../style.css\\\">\\n</head>\\n<body>\\n    <header>\\n        <div class=\\\"logo-container\\\">\\n            <img src=\\\"../img/yamanashi-aibase.png\\\" alt=\\\"AI BASE Logo\\\" class=\\\"logo\\\">\\n        </div>\\n        <h1>AI BASE</h1>\\n        <p class=\\\"tagline\\\"><a href=\\\"../index.html\\\">← Back to Home</a></p>\\n    </header>\\n\\n  <main>\\n    <article class=\\\"summary\\\">\\n      <h1>${yearMonth}まとめ - #${$('Format selected channel id').first().json.items.channelName[0]}</h1>\\n`;\\n\\n// カテゴリごとにセクション生成\\nlet categoryIndex = 1;\\nObject.entries(grouped).forEach(([category, users]) => {\\n  const categoryTitle = categoryNames[category] || category;\\n  html += `\\\\n     <section class=\\\"category\\\">\\\\n     <h2>${categoryIndex}. ${categoryTitle}</h2>\\\\n`;\\n  \\n  // 投稿者ごとにサブセクション\\n  Object.entries(users).forEach(([username, items]) => {\\n    html += `\\\\n    <div class=\\\"contributor\\\">\\\\n    <h3>投稿者：${username}</h3>\\\\n    <ul>\\\\n`;\\n    \\n    items.forEach(item => {\\n      // タイトル抽出（コンテンツの最初の部分またはURL）\\n      const headline = item.headline;\\n      const url = item.url;\\n      \\n      html += `      <li><strong>${headline}</strong><br>\\\\n`;\\n      html += `        <a href=\\\"${url}\\\" target=\\\"_blank\\\">${url}</a>`;\\n      \\n      \\n      html += `</li>\\\\n`;\\n    });\\n    \\n    html += `    </ul>\\\\n`;\\n  });\\n  html += `\\\\n    </div>\\\\n    <section>\\\\n`;\\n  categoryIndex++;\\n});\\n\\n// Second look セクション（任意）\\nhtml += `\\n    </article>\\n  </main>\\n\\n  <footer>\\n    <p>© ${today.getFullYear()} AI BASE. All rights reserved.</p>\\n  </footer>\\n</body>\\n</html>`;\\n\\nconst filename = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDay() + 1).padStart(2, '0')}` + \\n  `_${String(today.getHours() + 1).padStart(2, '0')}${String(today.getMinutes() + 1).padStart(2, '0')}.html`\\n\\nreturn [{\\n  json: {\\n    html,\\n    filename,\\n    categories: Object.keys(grouped),\\n    totalMessages: messages.length,\\n    generatedAt: today.toISOString()\\n  }\\n}];\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        624,\n        256\n      ],\n      \"id\": \"c99433ed-3257-4357-9b16-975c0de46ff6\",\n      \"name\": \"HTML Generation\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const originalData = $('Format Discord response').all();\\nconst aiResults = $input.all(); // OpenAI結果\\nconsole.log(aiResults)\\n\\nreturn originalData.map((item, index) => {\\n  const aiResponse = JSON.parse(aiResults[index].json.output[0].content[0].text);\\n  \\n  return {\\n    json: {\\n      ...item.json,\\n      category: aiResponse.category,\\n      headline: aiResponse.headline,\\n      tags: aiResponse.tags\\n    }\\n  };\\n});\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        400,\n        256\n      ],\n      \"id\": \"3dfb8490-2246-41d5-8542-dcec4be2f6eb\",\n      \"name\": \"Format AI response\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// Codeノードでの例\\nconst messages = $input.all();\\nconsole.log(messages)\\n\\nconst urlMessages = messages.filter(msg => {\\n  return msg.json.content.match(/https?:\\\\/\\\\/[^\\\\s]+/);\\n}).map(msg => ({\\n  url: msg.json.content.match(/https?:\\\\/\\\\/[^\\\\s]+/)[0],\\n  title: msg.json.embeds[0]?.title,\\n  description: msg.json.embeds[0]?.description,\\n  user: msg.json.author.global_name ? msg.json.author.global_name:msg.json.author.username,\\n  content: msg.json.content\\n}));\\n\\nreturn urlMessages;\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        592,\n        0\n      ],\n      \"id\": \"433e6b85-4d2c-4d77-929e-ebb93e824b47\",\n      \"name\": \"Format Discord response\"\n    },\n    {\n      \"parameters\": {\n        \"modelId\": {\n          \"__rl\": true,\n          \"value\": \"gpt-4\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"GPT-4\"\n        },\n        \"responses\": {\n          \"values\": [\n            {\n              \"role\": \"system\",\n              \"content\": \"あなたは技術コンテンツの分類専門家です。\\n以下のカテゴリのいずれかに分類してください：\\n\\n**主要カテゴリ:**\\n- openai: OpenAI、ChatGPT、GPT関連\\n- rag: RAG、検索拡張生成、ベクトルDB\\n- image_generation: 画像生成AI（Stable Diffusion、DALL-E等）\\n- agent: AIエージェント、自律AI、自動化システム\\n- workflow: n8n、Zapier等のワークフロー自動化\\n- tutorial: チュートリアル、ハウツー\\n- article: 技術記事、解説ブログ\\n- documentation: 公式ドキュメント\\n- tool: ツール、ライブラリ\\n- video: 動画コンテンツ\\n- repository: GitHubリポジトリ\\n- other: その他\\n\\n日本語で簡潔な説明を付けてJSON形式で返してください：\\n{\\n  \\\"category\\\": \\\"カテゴリ名\\\",\\n  \\\"headline\\\": \\\"内容を一行で説明\\\",\\n  \\\"tags\\\": [\\\"関連タグ1\\\", \\\"関連タグ2\\\"]\\n}\"\n            },\n            {\n              \"content\": \"=以下のメッセージを分類してください：\\n\\n投稿者: {{ $json.user }}\\n内容: {{ $json.content }}\\nURL:  {{ $json.url }}\\nタイトル : {{ $json.title }}\\n説明 : {{ $json.description }}\"\n            }\n          ]\n        },\n        \"builtInTools\": {},\n        \"options\": {}\n      },\n      \"type\": \"@n8n/n8n-nodes-langchain.openAi\",\n      \"typeVersion\": 2.1,\n      \"position\": [\n        832,\n        0\n      ],\n      \"id\": \"36815095-8cc5-4126-98c7-e4e060451f59\",\n      \"name\": \"Categorize\",\n      \"credentials\": {\n        \"openAiApi\": {\n          \"id\": \"OCUPByWGmta7FuDI\",\n          \"name\": \"OpenAi account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const createBranchResponse = $('Create branch').first().json;\\n\\nreturn {\\n  json: {\\n    branchName: createBranchResponse.ref.replace('refs/heads/', ''),\\n    fullRef: createBranchResponse.ref,\\n    sha: createBranchResponse.object.sha,\\n    htmlContent: $('HTML Generation').first().json.html,\\n    filename: $('HTML Generation').first().json.filename\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        800,\n        496\n      ],\n      \"id\": \"e73d7a86-7263-48c3-8ff2-7dd0d5788d77\",\n      \"name\": \"Extract Branch Info\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const data = $input.first().json;\\nconst base64Content = Buffer.from(data.htmlContent).toString('base64');\\n\\nreturn {\\n  json: {\\n    ...data,\\n    base64Content: base64Content,\\n    commitMessage: `Add ${data.filename}`\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        1008,\n        496\n      ],\n      \"id\": \"13fdad3b-3cd7-40b6-8de1-2fa12ed39ba8\",\n      \"name\": \"Prepare File Content\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"file\",\n        \"operation\": \"get\",\n        \"owner\": {\n          \"__rl\": true,\n          \"value\": \"yamanashi-aibase\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"yamanashi-aibase\",\n          \"cachedResultUrl\": \"https://github.com/yamanashi-aibase\"\n        },\n        \"repository\": {\n          \"__rl\": true,\n          \"value\": \"yamanashi-aibase.github.io\",\n          \"mode\": \"list\",\n          \"cachedResultName\": \"yamanashi-aibase.github.io\",\n          \"cachedResultUrl\": \"https://github.com/yamanashi-aibase/yamanashi-aibase.github.io\"\n        },\n        \"filePath\": \"index.html\",\n        \"asBinaryProperty\": false,\n        \"additionalParameters\": {}\n      },\n      \"type\": \"n8n-nodes-base.github\",\n      \"typeVersion\": 1.1,\n      \"position\": [\n        400,\n        784\n      ],\n      \"id\": \"9306a877-3a8b-4df7-a0e6-8ba3fd913185\",\n      \"name\": \"Get index.html\",\n      \"webhookId\": \"4e4d1b17-e2ef-4da7-a764-7de5c72353c8\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"const existingFile = $('Get index.html').first().json;\\nconst newSummary = $('HTML Generation').first().json;\\n\\n// Base64デコード\\nconst currentContent = Buffer.from(existingFile.content, 'base64').toString('utf-8');\\n\\n// 新しいリンクを追加\\nconst newLink = `\\n                <div class=\\\"summary-card\\\">\\n                  <h3>${$today.year}年${$today.month}月</h3>\\n                  <a href=\\\"summaries/${newSummary.filename}\\\" class=\\\"btn\\\">View Summary →</a>\\n                </div>\\n`;\\n\\n// <ul id=\\\"summary-list\\\"> の後に挿入\\nconst updatedContent = currentContent.replace(\\n  /(<div class=\\\"summary-list\\\">)/,\\n  `$1\\\\n${newLink}`\\n);\\nconst base64Content = Buffer.from(updatedContent).toString('base64');\\nreturn {\\n  json: {\\n    updatedIndexContent: updatedContent,\\n    updatedContentBase64: base64Content,\\n    indexSha: existingFile.sha\\n  }\\n};\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        608,\n        784\n      ],\n      \"id\": \"7d589de9-b53f-4be9-9d5c-c77b88ccc9d5\",\n      \"name\": \"Update index.html\"\n    },\n    {\n      \"parameters\": {\n        \"method\": \"PUT\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/index.html\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"message\",\n              \"value\": \"Update index\"\n            },\n            {\n              \"name\": \"content\",\n              \"value\": \"={{ $json.updatedContentBase64 }}\"\n            },\n            {\n              \"name\": \"branch\",\n              \"value\": \"={{ $('Extract Branch Info').item.json.branchName }}\"\n            },\n            {\n              \"name\": \"sha\",\n              \"value\": \"={{ $('Get index.html').item.json.sha }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        816,\n        784\n      ],\n      \"id\": \"ae6afa94-e806-4894-a011-1e0f32987885\",\n      \"name\": \"Commit index.html\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"PUT\",\n        \"url\": \"=https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/contents/summaries/{{ $json.filename }}\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"message\",\n              \"value\": \"={{ $json.commitMessage }}\"\n            },\n            {\n              \"name\": \"content\",\n              \"value\": \"={{ $json.base64Content }}\"\n            },\n            {\n              \"name\": \"branch\",\n              \"value\": \"={{ $json.branchName }}\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        1168,\n        496\n      ],\n      \"id\": \"3db6e1b6-ca41-4437-86ea-dbf820bcbce1\",\n      \"name\": \"Commit new monthly summary\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"https://api.github.com/repos/yamanashi-aibase/yamanashi-aibase.github.io/pulls\",\n        \"authentication\": \"predefinedCredentialType\",\n        \"nodeCredentialType\": \"githubApi\",\n        \"sendBody\": true,\n        \"bodyParameters\": {\n          \"parameters\": [\n            {\n              \"name\": \"title\",\n              \"value\": \"=Add Discord summary {{ $now.format('yyyy-MM-dd') }}\"\n            },\n            {\n              \"name\": \"head\",\n              \"value\": \"={{ $('Extract Branch Info').item.json.branchName }}\"\n            },\n            {\n              \"name\": \"base\",\n              \"value\": \"main\"\n            },\n            {\n              \"name\": \"body\",\n              \"value\": \"Auto generated PR from n8n workflow\"\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.3,\n      \"position\": [\n        1024,\n        784\n      ],\n      \"id\": \"27325efb-9e61-4e52-af31-2f7913e49cab\",\n      \"name\": \"Create a PR\",\n      \"credentials\": {\n        \"githubApi\": {\n          \"id\": \"IZNyfyYxCqQX5iU9\",\n          \"name\": \"GitHub account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"resume\": \"form\",\n        \"formTitle\": \"Select channel\",\n        \"formDescription\": \"Select channel name to generate summary\",\n        \"formFields\": {\n          \"values\": [\n            {\n              \"fieldLabel\": \"Channel name\",\n              \"fieldType\": \"dropdown\",\n              \"fieldOptions\": {\n                \"values\": formattedChannels\n              }\n            }\n          ]\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.wait\",\n      \"typeVersion\": 1.1,\n      \"position\": [\n        624,\n        -304\n      ],\n      \"id\": \"667179ee-eaa3-4768-bbab-26754c888190\",\n      \"name\": \"Wait\",\n      \"webhookId\": \"bdb25df1-7a13-4e55-850a-6aaf9120ae4c\"\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"return {\\n  items: {\\n    \\\"channelName\\\":[$input.first().json['Channel name'].split(\\\"::\\\")[0]],\\n    \\\"channelId\\\":[$input.first().json['Channel name'].split(\\\"::\\\")[1]]\\n  }\\n}\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        832,\n        -304\n      ],\n      \"id\": \"65f62f1e-e759-43eb-be36-5fde14e87887\",\n      \"name\": \"Format selected channel id\"\n    }\n  ],\n  \"pinData\": {},\n  \"connections\": {\n    \"When clicking ‘Execute workflow’\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Wait\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get many messages\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format Discord response\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get SHA\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Create branch\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Create branch\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Extract Branch Info\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"HTML Generation\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get SHA\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format AI response\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"HTML Generation\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format Discord response\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Categorize\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Categorize\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format AI response\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Extract Branch Info\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Prepare File Content\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Prepare File Content\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Commit new monthly summary\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Get index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Update index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Update index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Commit index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Commit new monthly summary\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get index.html\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Commit index.html\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Create a PR\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Wait\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format selected channel id\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Format selected channel id\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Get many messages\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"active\": false,\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  },\n  \"versionId\": \"33dfd575-6727-455a-9aef-fb10b6e062ba\",\n  \"meta\": {\n    \"templateCredsSetupCompleted\": true,\n    \"instanceId\": \"81f9ef99c4d24b407d47bcb03b24a88a4b635d6b9d3ea58fe12017e3def7db2d\"\n  },\n  \"id\": \"Dbr7SgjbYhGTpdem\",\n  \"tags\": [\n    {\n      \"updatedAt\": \"2025-12-20T00:06:13.106Z\",\n      \"createdAt\": \"2025-12-20T00:06:13.106Z\",\n      \"id\": \"MUspEjhgllRXe8UT\",\n      \"name\": \"ai-base\"\n    }\n  ]\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          416,
+          0
+        ],
+        "id": "ecdfa8bd-86d6-40a1-9778-593615272b1b",
+        "name": "Generate channel list"
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "id": "ee044ba1-356a-4a3d-a2b4-d9e99d0991e6",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "workflowId": {
+            "__rl": true,
+            "value": "mgGlasf6CjEmgyEQ",
+            "mode": "list",
+            "cachedResultName": "Test workflow (#mgGlasf6CjEmgyEQ)"
+          },
+          "workflowObject": "={{ $json.toJsonString() }}",
+          "requestOptions": {}
+        },
+        "type": "n8n-nodes-base.n8n",
+        "typeVersion": 1,
+        "position": [
+          592,
+          0
+        ],
+        "id": "5b1f4ae4-d061-4b5d-97bf-b3762f1b2afd",
+        "name": "Update a workflow",
+        "credentials": {
+          "n8nApi": {
+            "id": "udcRGPpMJMsYJlDA",
+            "name": "n8n account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Get many channels": {
+        "main": [
+          [
+            {
+              "node": "Generate channel list",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate channel list": {
+        "main": [
+          [
+            {
+              "node": "Update a workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get many channels",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Tatsuro Handa",
+    "name": null,
+    "description": null
+  },
+  "tags": [
+    {
+      "updatedAt": "2025-12-20T00:06:13.106Z",
+      "createdAt": "2025-12-20T00:06:13.106Z",
+      "id": "MUspEjhgllRXe8UT",
+      "name": "ai-base"
+    }
+  ]
+}
