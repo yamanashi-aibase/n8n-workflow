@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-02-09T05:00:04.532Z",
+  "updatedAt": "2026-02-11T05:00:04.844Z",
   "createdAt": "2025-12-19T14:34:03.647Z",
   "id": "mgGlasf6CjEmgyEQ",
   "name": "[Managed] Generate channel summary",
@@ -403,9 +403,6 @@
               "fieldOptions": {
                 "values": [
                   {
-                    "option": "朝活_202602::1457190769302704292"
-                  },
-                  {
                     "option": "朝活_202603::1467329250913943594"
                   }
                 ]
@@ -625,7 +622,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "71ae42be-306b-454a-8117-5c7e59e92e35",
+  "versionId": "11bc2de7-82fd-442a-bf84-c1a1773c6b7e",
   "activeVersionId": null,
   "triggerCount": 0,
   "shared": [
