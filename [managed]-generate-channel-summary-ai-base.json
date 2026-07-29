@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-28T04:00:20.180Z",
+  "updatedAt": "2026-07-29T04:00:20.148Z",
   "createdAt": "2025-12-19T14:34:03.647Z",
   "id": "mgGlasf6CjEmgyEQ",
   "name": "[Managed] Generate channel summary",
@@ -622,7 +622,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "f8ec3c6f-a6b5-4a90-9d33-69827702a169",
+  "versionId": "0a7488ef-cac8-4479-932d-b43d088bea8d",
   "activeVersionId": null,
   "triggerCount": 0,
   "shared": [
